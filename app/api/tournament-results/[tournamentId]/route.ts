@@ -273,7 +273,7 @@ export async function POST(_: Request, { params }: Params) {
         user_id: payout.registrar_user_id,
         wallet_id: wallet.id,
         amount: payout.amount,
-        transaction_type: "TOURNAMENT_PRIZE",
+        transaction_type: "TOURNAMENT_WIN",
         payment_status: "completed",
         related_tournament_id: tournamentId,
         old_balance: oldBalance,
