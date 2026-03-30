@@ -23,6 +23,15 @@ type TournamentResultRow = {
   updated_at: string;
 };
 
+type PayoutPreviewItem = {
+  registrar_user_id: string;
+  registrar_name: string;
+  slot_number: number;
+  team_name: string | null;
+  rank: number;
+  amount: number;
+};
+
 function fmtDate(value: string | null | undefined) {
   if (!value) return "-";
   return new Date(value).toLocaleString("en-IN", {
@@ -56,6 +65,8 @@ export default function TournamentResultsPage() {
   const [resultLoading, setResultLoading] = useState(false);
   const [resultError, setResultError] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [payoutPreview, setPayoutPreview] = useState<PayoutPreviewItem[]>([]);
+  const [confirmVerifyOpen, setConfirmVerifyOpen] = useState(false);
   const LIMIT = 20;
 
   const load = useCallback(async () => {
@@ -98,6 +109,7 @@ export default function TournamentResultsPage() {
       }
 
       setSelectedResult((data.data ?? null) as TournamentResultRow | null);
+      setPayoutPreview((data.payout_preview ?? []) as PayoutPreviewItem[]);
     } catch (err) {
       setResultError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -110,10 +122,8 @@ export default function TournamentResultsPage() {
     setVerifying(true);
 
     try {
-      const res = await fetch(`/api/tournaments/${selectedTournament.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ result_verified: true }),
+      const res = await fetch(`/api/tournament-results/${selectedTournament.id}`, {
+        method: "POST",
       });
 
       if (!res.ok) {
@@ -122,11 +132,21 @@ export default function TournamentResultsPage() {
         return;
       }
 
+      const data = await res.json().catch(() => ({}));
+
       // Update local state
       setRows((prev) =>
-        prev.map((r) => (r.id === selectedTournament.id ? { ...r, result_verified: true } : r))
+        prev.map((r) =>
+          r.id === selectedTournament.id
+            ? { ...r, result_verified: true, payout_status: "paid" }
+            : r
+        )
       );
-      setSelectedTournament((prev) => (prev ? { ...prev, result_verified: true } : prev));
+      setSelectedTournament((prev) =>
+        prev ? { ...prev, result_verified: true, payout_status: "paid" } : prev
+      );
+      setPayoutPreview((data.payout_preview ?? []) as PayoutPreviewItem[]);
+      setConfirmVerifyOpen(false);
     } catch (err) {
       alert(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
@@ -357,7 +377,7 @@ export default function TournamentResultsPage() {
               {/* Action Button */}
               {!selectedTournament.result_verified && selectedTournament.results_submitted && (
                 <Button
-                  onClick={handleVerify}
+                  onClick={() => setConfirmVerifyOpen(true)}
                   disabled={verifying}
                   className="w-full"
                   size="lg"
@@ -378,6 +398,65 @@ export default function TournamentResultsPage() {
                   ✓ This tournament result has already been verified.
                 </div>
               )}
+
+              <Dialog open={confirmVerifyOpen} onOpenChange={setConfirmVerifyOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Verify Result and Credit Wallets</DialogTitle>
+                    <DialogDescription>
+                      Only registrar wallets will receive prize money after verification.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-3">
+                    {payoutPreview.length === 0 ? (
+                      <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                        No prize payouts will be credited for this tournament.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {payoutPreview.map((item) => (
+                          <div
+                            key={`${item.registrar_user_id}-${item.rank}-${item.slot_number}`}
+                            className="rounded-md border border-border/60 px-3 py-2 text-sm"
+                          >
+                            <div className="font-medium text-foreground">
+                              {item.registrar_name}
+                            </div>
+                            <div className="text-muted-foreground text-xs mt-1">
+                              Rank #{item.rank} • Slot {item.slot_number}
+                              {item.team_name ? ` • ${item.team_name}` : ""}
+                            </div>
+                            <div className="text-green-400 font-semibold mt-1">
+                              ₹{Number(item.amount).toFixed(2)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setConfirmVerifyOpen(false)}
+                        disabled={verifying}
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={handleVerify} disabled={verifying}>
+                        {verifying ? (
+                          <>
+                            <Loader2 className="size-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          "Confirm Verify"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </DialogContent>
