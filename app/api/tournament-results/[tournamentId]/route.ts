@@ -245,6 +245,22 @@ export async function POST(_: Request, { params }: Params) {
       ])
     );
 
+    const { data: sensitiveRows, error: sensitiveError } = await sb
+      .from("sensitive_userdata")
+      .select("id, earnings")
+      .in("id", walletUserIds);
+
+    if (sensitiveError) {
+      return NextResponse.json({ error: sensitiveError.message }, { status: 500 });
+    }
+
+    const sensitiveByUserId = new Map(
+      ((sensitiveRows ?? []) as Array<{ id: string; earnings: number | null }>).map((row) => [
+        row.id,
+        row,
+      ])
+    );
+
     for (const payout of payoutPreview) {
       const wallet = walletByUserId.get(payout.registrar_user_id);
       if (!wallet) {
@@ -253,12 +269,23 @@ export async function POST(_: Request, { params }: Params) {
           { status: 400 }
         );
       }
+
+      const sensitive = sensitiveByUserId.get(payout.registrar_user_id);
+      if (!sensitive) {
+        return NextResponse.json(
+          { error: `Sensitive profile not found for registrar ${payout.registrar_name}` },
+          { status: 400 }
+        );
+      }
     }
 
     for (const payout of payoutPreview) {
       const wallet = walletByUserId.get(payout.registrar_user_id)!;
+      const sensitive = sensitiveByUserId.get(payout.registrar_user_id)!;
       const oldBalance = Number(wallet.balance ?? 0);
       const newBalance = oldBalance + payout.amount;
+      const oldEarnings = Number(sensitive.earnings ?? 0);
+      const newEarnings = oldEarnings + payout.amount;
 
       const { error: updateWalletError } = await sb
         .from("wallets")
@@ -284,7 +311,17 @@ export async function POST(_: Request, { params }: Params) {
         return NextResponse.json({ error: transactionError.message }, { status: 500 });
       }
 
+      const { error: earningsUpdateError } = await sb
+        .from("sensitive_userdata")
+        .update({ earnings: newEarnings })
+        .eq("id", payout.registrar_user_id);
+
+      if (earningsUpdateError) {
+        return NextResponse.json({ error: earningsUpdateError.message }, { status: 500 });
+      }
+
       wallet.balance = newBalance;
+      sensitive.earnings = newEarnings;
     }
   }
 
