@@ -54,9 +54,7 @@ export type Organiser = {
   alternate_contact_number: string | null;
   address: string;
   aadhar_card_url: string | null;
-  hosted_count: number;
   balance: string;
-  organiser_commission: string;
   onesignal_player_id: string | null;
   created_at: string;
   updated_at: string;

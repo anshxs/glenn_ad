@@ -50,6 +50,21 @@ function shortId(value: string | null | undefined) {
   return `${value.slice(0, 8)}...`;
 }
 
+function OverviewRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number | React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-4 py-2 border-b border-border/50 last:border-0">
+      <span className="text-xs text-muted-foreground w-40 shrink-0">{label}</span>
+      <span className="text-sm break-all">{value}</span>
+    </div>
+  );
+}
+
 function Pager({
   page,
   total,
@@ -84,28 +99,27 @@ function Pager({
 function OverviewTab({ detail }: { detail: OrganiserDetailResponse }) {
   const { organiser, user } = detail;
 
-  const Row = ({ label, value }: { label: string; value: string | number | React.ReactNode }) => (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-4 py-2 border-b border-border/50 last:border-0">
-      <span className="text-xs text-muted-foreground w-40 shrink-0">{label}</span>
-      <span className="text-sm break-all">{value}</span>
-    </div>
-  );
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="rounded-lg border border-border p-5">
         <h3 className="font-semibold text-sm mb-3">Organiser</h3>
-        <Row label="Name" value={organiser.name} />
-        <Row label="Glenn ID" value={organiser.glenn_id} />
-        <Row label="Organiser Row ID" value={<span className="font-mono text-xs">{organiser.id}</span>} />
-        <Row
+        <OverviewRow label="Name" value={organiser.name} />
+        <OverviewRow label="Glenn ID" value={organiser.glenn_id} />
+        <OverviewRow
+          label="Organiser Row ID"
+          value={<span className="font-mono text-xs">{organiser.id}</span>}
+        />
+        <OverviewRow
           label="User ID"
           value={<span className="font-mono text-xs">{organiser.user_id}</span>}
         />
-        <Row label="Contact" value={organiser.contact_number} />
-        <Row label="Alt Contact" value={organiser.alternate_contact_number || "-"} />
-        <Row label="Address" value={organiser.address} />
-        <Row
+        <OverviewRow label="Contact" value={organiser.contact_number} />
+        <OverviewRow
+          label="Alt Contact"
+          value={organiser.alternate_contact_number || "-"}
+        />
+        <OverviewRow label="Address" value={organiser.address} />
+        <OverviewRow
           label="Aadhaar"
           value={
             organiser.aadhar_card_url ? (
@@ -122,15 +136,17 @@ function OverviewTab({ detail }: { detail: OrganiserDetailResponse }) {
             )
           }
         />
-        <Row label="Hosted Count" value={organiser.hosted_count} />
-        <Row label="Balance" value={`Rs ${Number(organiser.balance).toFixed(2)}`} />
-        <Row
-          label="Commission"
-          value={`${Number(organiser.organiser_commission).toFixed(2)}%`}
+        <OverviewRow
+          label="Balance"
+          value={`Rs ${Number(organiser.balance).toFixed(2)}`}
         />
-        <Row label="OneSignal" value={organiser.onesignal_player_id || "-"} />
-        <Row label="Created" value={fmtDate(organiser.created_at)} />
-        <Row label="Updated" value={fmtDate(organiser.updated_at)} />
+        <OverviewRow
+          label="Commission Model"
+          value="Fixed amount per tournament"
+        />
+        <OverviewRow label="OneSignal" value={organiser.onesignal_player_id || "-"} />
+        <OverviewRow label="Created" value={fmtDate(organiser.created_at)} />
+        <OverviewRow label="Updated" value={fmtDate(organiser.updated_at)} />
       </div>
 
       <div className="rounded-lg border border-border p-5">
@@ -216,6 +232,7 @@ function TournamentsTab({ organiserId }: { organiserId: string }) {
               <th className="px-4 py-2 text-left font-medium">Category</th>
               <th className="px-4 py-2 text-right font-medium">Slots</th>
               <th className="px-4 py-2 text-right font-medium">Entry</th>
+              <th className="px-4 py-2 text-right font-medium">Commission</th>
               <th className="px-4 py-2 text-left font-medium">Date</th>
             </tr>
           </thead>
@@ -229,6 +246,7 @@ function TournamentsTab({ organiserId }: { organiserId: string }) {
                   {item.totalslots - item.slotsleft}/{item.totalslots}
                 </td>
                 <td className="px-4 py-2 text-right">Rs {Number(item.entryfee).toFixed(2)}</td>
+                <td className="px-4 py-2 text-right">Rs {Number(item.organiser_commission).toFixed(2)}</td>
                 <td className="px-4 py-2">{fmtDate(item.tournament_datetime)}</td>
               </tr>
             ))}

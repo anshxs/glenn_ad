@@ -124,8 +124,6 @@ export default function NotifyPage() {
   }
 
   async function handleSend() {
-    if (!form.title.trim() || !form.body.trim()) { setError("Title and body are required"); return; }
-
     let extraData: Record<string, unknown> | undefined;
     if (form.data.trim()) {
       try { extraData = JSON.parse(form.data); }
@@ -230,10 +228,10 @@ export default function NotifyPage() {
             <h2 className="font-semibold text-sm">Notification Content</h2>
           </div>
 
-          <FormField label="Title *">
+          <FormField label="Title">
             <Input value={form.title} onChange={setF("title")} placeholder="Notification title" />
           </FormField>
-          <FormField label="Body *">
+          <FormField label="Body">
             <Textarea value={form.body} onChange={setF("body")} placeholder="Notification message" rows={3} />
           </FormField>
 
@@ -287,7 +285,7 @@ export default function NotifyPage() {
           )}
 
           {!confirming ? (
-            <Button onClick={() => { setError(""); setConfirming(true); }} disabled={sending || !form.title.trim() || !form.body.trim()} className="w-full">
+            <Button onClick={() => { setError(""); setConfirming(true); }} disabled={sending} className="w-full">
               <Send className="size-4 mr-2" />
               {preview ? `Send to ${preview.has_player_id.toLocaleString()} users` : "Send Notification"}
             </Button>

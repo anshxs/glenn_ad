@@ -14,9 +14,7 @@ type ColumnKey =
   | "user_id"
   | "contact_number"
   | "alternate_contact_number"
-  | "hosted_count"
   | "balance"
-  | "organiser_commission"
   | "onesignal_player_id"
   | "created_at"
   | "updated_at";
@@ -32,9 +30,7 @@ const ALL_COLUMNS: ColumnMeta[] = [
   { key: "user_id", label: "User ID" },
   { key: "contact_number", label: "Contact" },
   { key: "alternate_contact_number", label: "Alt Contact" },
-  { key: "hosted_count", label: "Hosted" },
   { key: "balance", label: "Balance" },
-  { key: "organiser_commission", label: "Commission %" },
   { key: "onesignal_player_id", label: "OneSignal" },
   { key: "created_at", label: "Created" },
   { key: "updated_at", label: "Updated" },
@@ -44,9 +40,7 @@ const DEFAULT_COLUMNS: ColumnKey[] = [
   "name",
   "glenn_id",
   "contact_number",
-  "hosted_count",
   "balance",
-  "organiser_commission",
   "updated_at",
 ];
 
@@ -79,12 +73,8 @@ function renderCell(row: Organiser, key: ColumnKey) {
       return row.contact_number;
     case "alternate_contact_number":
       return row.alternate_contact_number || "-";
-    case "hosted_count":
-      return row.hosted_count;
     case "balance":
       return `Rs ${Number(row.balance ?? 0).toFixed(2)}`;
-    case "organiser_commission":
-      return `${Number(row.organiser_commission ?? 0).toFixed(2)}%`;
     case "onesignal_player_id":
       return row.onesignal_player_id ? (
         <span className="font-mono text-xs">{shortId(row.onesignal_player_id)}</span>

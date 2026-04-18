@@ -84,9 +84,10 @@ async function sendBatch(playerIds: string[], notif: NotifPayload): Promise<{ id
   const payload: Record<string, unknown> = {
     app_id: process.env.ONESIGNAL_APP_ID,
     include_player_ids: playerIds,
-    headings: { en: notif.title.trim() },
-    contents: { en: notif.body.trim() },
   };
+
+  if (notif.title.trim()) payload.headings = { en: notif.title.trim() };
+  if (notif.body.trim()) payload.contents = { en: notif.body.trim() };
 
   if (notif.url?.trim()) payload.url = notif.url.trim();
   if (notif.large_icon?.trim()) payload.large_icon = notif.large_icon.trim();
@@ -156,16 +157,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ total_matched: totalMatched, has_player_id: playerIds.length });
   }
 
-  if (!title?.trim()) return NextResponse.json({ error: "title is required" }, { status: 400 });
-  if (!msgBody?.trim()) return NextResponse.json({ error: "body is required" }, { status: 400 });
-
   if (playerIds.length === 0) {
     return NextResponse.json({ sent: 0, skipped: totalMatched, batches: 0 });
   }
 
   const notif: NotifPayload = {
-    title: title.trim(),
-    body: msgBody.trim(),
+    title: typeof title === "string" ? title.trim() : "",
+    body: typeof msgBody === "string" ? msgBody.trim() : "",
     url, large_icon, big_picture, small_icon,
     android_channel_id, collapse_id,
     priority: priority != null ? Number(priority) : undefined,

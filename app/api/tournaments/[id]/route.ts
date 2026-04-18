@@ -10,6 +10,26 @@ async function requireAuth() {
 
 type Params = { params: Promise<{ id: string }> };
 
+async function syncPendingOrganiserCommission(
+  sb: ReturnType<typeof createAdminClient>,
+  tournamentId: string,
+  tournamentName: string,
+  organiserCommission: unknown
+) {
+  const amount = Number(organiserCommission ?? 0);
+  const normalizedAmount = Number.isFinite(amount) ? amount : 0;
+
+  return sb
+    .from("organiser_transactions")
+    .update({
+      amount: normalizedAmount,
+      description: `Pending hosting commission for tournament: ${tournamentName}`,
+    })
+    .eq("tournament_id", tournamentId)
+    .eq("type", "commission")
+    .eq("status", "pending");
+}
+
 // GET /api/tournaments/[id] — get single tournament
 export async function GET(_: Request, { params }: Params) {
   if (!(await requireAuth()))
@@ -70,6 +90,18 @@ export async function PATCH(request: Request, { params }: Params) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const { error: syncError } = await syncPendingOrganiserCommission(
+    sb,
+    id,
+    String(data.tournament_name ?? ""),
+    data.organiser_commission
+  );
+
+  if (syncError) {
+    return NextResponse.json({ error: syncError.message }, { status: 500 });
+  }
+
   return NextResponse.json(data);
 }
 
